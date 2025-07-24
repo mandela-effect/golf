@@ -66,9 +66,6 @@ export const GameBoard = ({
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-foreground">CPU</h2>
-          <div className="text-lg font-medium text-foreground">
-            Current Hand: {cpuScore === Infinity ? '?' : cpuScore}
-          </div>
         </div>
         <div className="flex gap-4 justify-center p-4 bg-cpu-area/10 rounded-lg border border-cpu-area/30">
           {gameState.cpuHand.cards.map((card, index) => (
@@ -133,9 +130,6 @@ export const GameBoard = ({
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-foreground">Player</h2>
-          <div className="text-lg font-medium text-foreground">
-            Current Hand: {playerScore === Infinity ? '?' : playerScore}
-          </div>
         </div>
         <div className={cn(
           "flex gap-4 justify-center p-4 rounded-lg border",
