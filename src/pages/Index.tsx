@@ -1,11 +1,49 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect } from 'react';
+import { GameBoard } from '@/components/GameBoard';
+import { useGolfGame } from '@/hooks/useGolfGame';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
+  const {
+    gameState,
+    drawnCard,
+    dealInitialCards,
+    drawFromDeck,
+    drawFromDiscard,
+    replaceCard,
+    discardDrawnCard,
+    newRound
+  } = useGolfGame();
+
+  useEffect(() => {
+    if (gameState.gamePhase === 'initial') {
+      dealInitialCards();
+    }
+  }, [dealInitialCards, gameState.gamePhase]);
+
+  const handleCardClick = (position: number) => {
+    if (drawnCard && gameState.currentTurn === 'player') {
+      replaceCard(position);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-felt-green">
+      <GameBoard
+        gameState={gameState}
+        onCardClick={handleCardClick}
+        onDeckClick={drawFromDeck}
+        onDiscardClick={drawFromDiscard}
+        drawnCard={drawnCard}
+        onConfirmCard={() => {}}
+        onDiscardDrawnCard={discardDrawnCard}
+      />
+      
+      {/* Game Controls */}
+      <div className="fixed bottom-4 right-4 flex gap-2">
+        <Button onClick={newRound} variant="secondary">
+          New Round
+        </Button>
       </div>
     </div>
   );
