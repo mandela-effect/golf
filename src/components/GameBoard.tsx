@@ -33,6 +33,7 @@ export const GameBoard = ({
   const isPlayingPhase = gameState.gamePhase === 'playing';
   const isRoundFinished = gameState.gamePhase === 'round-finished';
   const isGameFinished = gameState.gamePhase === 'game-finished';
+  const isFlipAfterDiscardPhase = gameState.gamePhase === 'flip-after-discard';
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-felt-green min-h-screen">
@@ -140,7 +141,8 @@ export const GameBoard = ({
           "flex gap-4 justify-center p-4 rounded-lg border",
           "bg-player-area/10 border-player-area/30",
           isPlayerTurn && isPlayingPhase && "ring-2 ring-player-area/50",
-          isPeekPhase && "ring-2 ring-accent/50"
+          isPeekPhase && "ring-2 ring-accent/50",
+          isFlipAfterDiscardPhase && "ring-2 ring-warning/50"
         )}>
           {gameState.playerHand.cards.map((card, index) => (
             <PlayingCard
@@ -155,7 +157,8 @@ export const GameBoard = ({
               isLocked={gameState.playerHand.revealedCards[index]}
               isSelectable={
                 (isPeekPhase && !gameState.playerHand.peekedCards[index] && gameState.peeksRemaining > 0) ||
-                (isPlayerTurn && drawnCard && !gameState.playerHand.revealedCards[index] && isPlayingPhase)
+                (isPlayerTurn && !gameState.playerHand.revealedCards[index] && isPlayingPhase) ||
+                (isFlipAfterDiscardPhase && !gameState.playerHand.revealedCards[index])
               }
               onClick={() => {
                 if (isPeekPhase) {
@@ -198,6 +201,12 @@ export const GameBoard = ({
         {isGameFinished && (
           <div className="inline-block px-4 py-2 rounded-lg font-medium bg-accent text-accent-foreground">
             Game Over! {gameState.gameScore.player <= gameState.gameScore.cpu ? 'Player' : 'CPU'} Wins!
+          </div>
+        )}
+
+        {isFlipAfterDiscardPhase && (
+          <div className="inline-block px-4 py-2 rounded-lg font-medium bg-warning text-warning-foreground">
+            Flip Phase: Click one of your face-down cards to flip it.
           </div>
         )}
       </div>

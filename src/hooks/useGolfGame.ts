@@ -26,6 +26,8 @@ const createInitialState = (): GameState => {
   };
 };
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const useGolfGame = () => {
   const [gameState, setGameState] = useState<GameState>(createInitialState());
   const [drawnCard, setDrawnCard] = useState<Card | null>(null);
@@ -66,31 +68,36 @@ export const useGolfGame = () => {
     toast.success("Cards dealt! Click 2 cards to peek at them, then the game will begin!");
   }, []);
 
-  const peekAtCard = useCallback((position: number) => {
+  const peekAtCard = useCallback(async (position: number) => {
     if (gameState.gamePhase !== 'peek' || gameState.peeksRemaining <= 0) return;
     if (gameState.playerHand.peekedCards[position]) return; // Already peeked
 
+    // Update state for the peeked card
     setGameState(prevState => {
       const newPlayerHand = { ...prevState.playerHand };
       newPlayerHand.peekedCards = [...newPlayerHand.peekedCards];
       newPlayerHand.peekedCards[position] = true;
-      
-      const newPeeksRemaining = prevState.peeksRemaining - 1;
-      const newGamePhase = newPeeksRemaining === 0 ? 'playing' : 'peek';
 
-      if (newPeeksRemaining === 0) {
-        toast.success("Peek phase complete! Game begins now!");
-      } else {
-        toast.info(`Peeked at card! ${newPeeksRemaining} peek${newPeeksRemaining === 1 ? '' : 's'} remaining.`);
-      }
+      const newPeeksRemaining = prevState.peeksRemaining - 1;
 
       return {
         ...prevState,
         playerHand: newPlayerHand,
-        peeksRemaining: newPeeksRemaining,
-        gamePhase: newGamePhase
+        peeksRemaining: newPeeksRemaining
       };
     });
+
+    // Wait for the state update to complete and introduce a delay if this is the second peek
+    if (gameState.peeksRemaining - 1 === 0) {
+      await sleep(2000); // Add a 2-second delay
+      setGameState(prevState => ({
+        ...prevState,
+        gamePhase: 'playing'
+      }));
+      toast.success("Peek phase complete! Game begins now!");
+    } else {
+      toast.info(`Peeked at card! ${gameState.peeksRemaining - 1} peek${gameState.peeksRemaining - 1 === 1 ? '' : 's'} remaining.`);
+    }
   }, [gameState.gamePhase, gameState.peeksRemaining, gameState.playerHand.peekedCards]);
 
   const drawFromDeck = useCallback(() => {
@@ -130,6 +137,57 @@ export const useGolfGame = () => {
       };
     });
   }, [gameState.discardPile.length, gameState.gamePhase]);
+
+  const lockCard = useCallback((position: number) => {
+    if (gameState.currentTurn !== 'player' || gameState.gamePhase !== 'playing') return;
+    if (gameState.playerHand.revealedCards[position]) return; // Card already locked
+
+    setGameState(prevState => {
+      const newPlayerHand = { ...prevState.playerHand };
+      newPlayerHand.revealedCards = [...newPlayerHand.revealedCards];
+      newPlayerHand.revealedCards[position] = true; // Lock the card
+
+      // Check if round is finished (all player cards revealed)
+      const allPlayerCardsRevealed = newPlayerHand.revealedCards.every(revealed => revealed);
+      const allCpuCardsRevealed = prevState.cpuHand.revealedCards.every(revealed => revealed);
+
+      let newGamePhase: GameState['gamePhase'] = prevState.gamePhase;
+      let newRoundScore = prevState.roundScore;
+      let newGameScore = prevState.gameScore;
+
+      if (allPlayerCardsRevealed || allCpuCardsRevealed) {
+        newGamePhase = 'round-finished';
+        const playerScore = calculateHandScore(newPlayerHand.cards);
+        const cpuScore = calculateHandScore(prevState.cpuHand.cards);
+
+        newRoundScore = { player: playerScore, cpu: cpuScore };
+        newGameScore = {
+          player: prevState.gameScore.player + playerScore,
+          cpu: prevState.gameScore.cpu + cpuScore
+        };
+
+        // Check if game is finished
+        if (newGameScore.player >= 100 || newGameScore.cpu >= 100) {
+          newGamePhase = 'game-finished';
+          const winner = newGameScore.player <= newGameScore.cpu ? 'Player' : 'CPU';
+          toast.success(`Game Over! ${winner} wins with ${Math.min(newGameScore.player, newGameScore.cpu)} points!`);
+        } else {
+          toast.success(`Round finished! Player: ${playerScore}, CPU: ${cpuScore}`);
+        }
+      }
+
+      return {
+        ...prevState,
+        playerHand: newPlayerHand,
+        currentTurn: allPlayerCardsRevealed || allCpuCardsRevealed ? prevState.currentTurn : 'cpu',
+        gamePhase: newGamePhase,
+        roundScore: newRoundScore,
+        gameScore: newGameScore
+      };
+    });
+
+    toast.success("Card locked in!");
+  }, [gameState.currentTurn, gameState.gamePhase, gameState.playerHand.revealedCards]);
 
   const replaceCard = useCallback((position: number) => {
     if (!drawnCard || gameState.currentTurn !== 'player' || gameState.gamePhase !== 'playing') return;
@@ -200,19 +258,20 @@ export const useGolfGame = () => {
   const discardDrawnCard = useCallback(() => {
     if (!drawnCard || gameState.gamePhase !== 'playing') return;
 
-    setGameState(prevState => ({
-      ...prevState,
-      discardPile: [...prevState.discardPile, drawnCard],
-      currentTurn: 'cpu'
-    }));
+    setGameState(prevState => {
+      const newDiscardPile = [...prevState.discardPile, drawnCard];
+
+      return {
+        ...prevState,
+        discardPile: newDiscardPile,
+        drawnCard: null, // Clear the drawn card
+        gamePhase: 'flip-after-discard', // Temporary phase to allow flipping a card
+        currentTurn: 'player' // Ensure the player can still interact
+      };
+    });
 
     setDrawnCard(null);
-    toast.info("Card discarded!");
-    
-    // CPU turn after a short delay
-    setTimeout(() => {
-      cpuTurn();
-    }, 1000);
+    toast.info("Card discarded! Now flip one of your face-down cards.");
   }, [drawnCard, gameState.gamePhase]);
 
   const cpuTurn = useCallback(() => {
@@ -223,46 +282,23 @@ export const useGolfGame = () => {
 
       const newDeck = [...prevState.deck];
       const drawnCard = newDeck.pop()!;
-      
-      // Simple CPU AI: Replace highest value card if drawn card is better
-      const cpuCards = [...prevState.cpuHand.cards] as Card[];
-      let bestPosition = -1;
-      let highestValue = -1;
 
-      cpuCards.forEach((card, index) => {
-        if (!prevState.cpuHand.revealedCards[index] && card) {
-          const cardValue = calculateHandScore([card]);
-          if (cardValue > highestValue) {
-            highestValue = cardValue;
-            bestPosition = index;
-          }
-        }
-      });
+      const newDiscardPile = [...prevState.discardPile, drawnCard];
+      const newCpuHand = { ...prevState.cpuHand };
+      newCpuHand.revealedCards = [...newCpuHand.revealedCards];
 
-      const drawnCardValue = calculateHandScore([drawnCard]);
-      
-      let newCpuHand = { ...prevState.cpuHand };
-      let newDiscardPile = [...prevState.discardPile];
-
-      if (bestPosition !== -1 && drawnCardValue < highestValue) {
-        // Replace the highest value card and lock it
-        const oldCard = newCpuHand.cards[bestPosition];
-        newCpuHand.cards = [...newCpuHand.cards];
-        newCpuHand.revealedCards = [...newCpuHand.revealedCards];
-        newCpuHand.cards[bestPosition] = drawnCard;
-        newCpuHand.revealedCards[bestPosition] = true; // Lock the card
-        if (oldCard) newDiscardPile.push(oldCard);
-        toast.info("CPU replaced and locked a card");
-      } else {
-        // Discard the drawn card
-        newDiscardPile.push(drawnCard);
-        toast.info("CPU discarded the drawn card");
+      // Flip the first face-down card
+      const flipIndex = newCpuHand.revealedCards.findIndex(revealed => !revealed);
+      if (flipIndex !== -1) {
+        newCpuHand.revealedCards[flipIndex] = true;
       }
+
+      toast.info("CPU discarded a card and flipped one of its cards.");
 
       // Check if round is finished
       const allPlayerCardsRevealed = prevState.playerHand.revealedCards.every(revealed => revealed);
       const allCpuCardsRevealed = newCpuHand.revealedCards.every(revealed => revealed);
-      
+
       let newGamePhase: GameState['gamePhase'] = prevState.gamePhase;
       let newRoundScore = prevState.roundScore;
       let newGameScore = prevState.gameScore;
@@ -271,7 +307,7 @@ export const useGolfGame = () => {
         newGamePhase = 'round-finished';
         const playerScore = calculateHandScore(prevState.playerHand.cards);
         const cpuScore = calculateHandScore(newCpuHand.cards);
-        
+
         newRoundScore = { player: playerScore, cpu: cpuScore };
         newGameScore = {
           player: prevState.gameScore.player + playerScore,
@@ -300,6 +336,124 @@ export const useGolfGame = () => {
       };
     });
   }, []);
+
+  const lockCardAfterDiscard = useCallback((position: number) => {
+    if (gameState.gamePhase !== 'flip-after-discard') return; // Ensure this only works in the correct phase
+    if (gameState.playerHand.revealedCards[position]) return; // Card already locked
+
+    setGameState(prevState => {
+      const newPlayerHand = { ...prevState.playerHand };
+      newPlayerHand.revealedCards = [...newPlayerHand.revealedCards];
+      newPlayerHand.revealedCards[position] = true; // Lock the card
+
+      // Check if round is finished (all player cards revealed)
+      const allPlayerCardsRevealed = newPlayerHand.revealedCards.every(revealed => revealed);
+      const allCpuCardsRevealed = prevState.cpuHand.revealedCards.every(revealed => revealed);
+
+      let newGamePhase: GameState['gamePhase'] = prevState.gamePhase;
+      let newRoundScore = prevState.roundScore;
+      let newGameScore = prevState.gameScore;
+
+      if (allPlayerCardsRevealed || allCpuCardsRevealed) {
+        newGamePhase = 'round-finished';
+        const playerScore = calculateHandScore(newPlayerHand.cards);
+        const cpuScore = calculateHandScore(prevState.cpuHand.cards);
+
+        newRoundScore = { player: playerScore, cpu: cpuScore };
+        newGameScore = {
+          player: prevState.gameScore.player + playerScore,
+          cpu: prevState.gameScore.cpu + cpuScore
+        };
+
+        // Check if game is finished
+        if (newGameScore.player >= 100 || newGameScore.cpu >= 100) {
+          newGamePhase = 'game-finished';
+          const winner = newGameScore.player <= newGameScore.cpu ? 'Player' : 'CPU';
+          toast.success(`Game Over! ${winner} wins with ${Math.min(newGameScore.player, newGameScore.cpu)} points!`);
+        } else {
+          toast.success(`Round finished! Player: ${playerScore}, CPU: ${cpuScore}`);
+        }
+      } else {
+        newGamePhase = 'playing'; // Return to the normal playing phase
+      }
+
+      return {
+        ...prevState,
+        playerHand: newPlayerHand,
+        currentTurn: allPlayerCardsRevealed || allCpuCardsRevealed ? prevState.currentTurn : 'cpu',
+        gamePhase: newGamePhase,
+        roundScore: newRoundScore,
+        gameScore: newGameScore
+      };
+    });
+
+    toast.success("Card locked in!");
+
+    // Trigger CPU turn if the game is still in the playing phase
+    if (gameState.gamePhase === 'flip-after-discard') {
+      setTimeout(() => {
+        cpuTurn();
+      }, 1000);
+    }
+  }, [gameState.gamePhase, gameState.playerHand.revealedCards, cpuTurn]);
+
+  const flipCardDirectly = useCallback((position: number) => {
+    if (gameState.currentTurn !== 'player' || gameState.gamePhase !== 'playing') return;
+    if (gameState.playerHand.revealedCards[position]) return; // Card already locked
+
+    setGameState(prevState => {
+      const newPlayerHand = { ...prevState.playerHand };
+      newPlayerHand.revealedCards = [...newPlayerHand.revealedCards];
+      newPlayerHand.revealedCards[position] = true; // Lock the card
+
+      // Check if round is finished (all player cards revealed)
+      const allPlayerCardsRevealed = newPlayerHand.revealedCards.every(revealed => revealed);
+      const allCpuCardsRevealed = prevState.cpuHand.revealedCards.every(revealed => revealed);
+
+      let newGamePhase: GameState['gamePhase'] = prevState.gamePhase;
+      let newRoundScore = prevState.roundScore;
+      let newGameScore = prevState.gameScore;
+
+      if (allPlayerCardsRevealed || allCpuCardsRevealed) {
+        newGamePhase = 'round-finished';
+        const playerScore = calculateHandScore(newPlayerHand.cards);
+        const cpuScore = calculateHandScore(prevState.cpuHand.cards);
+
+        newRoundScore = { player: playerScore, cpu: cpuScore };
+        newGameScore = {
+          player: prevState.gameScore.player + playerScore,
+          cpu: prevState.gameScore.cpu + cpuScore
+        };
+
+        // Check if game is finished
+        if (newGameScore.player >= 100 || newGameScore.cpu >= 100) {
+          newGamePhase = 'game-finished';
+          const winner = newGameScore.player <= newGameScore.cpu ? 'Player' : 'CPU';
+          toast.success(`Game Over! ${winner} wins with ${Math.min(newGameScore.player, newGameScore.cpu)} points!`);
+        } else {
+          toast.success(`Round finished! Player: ${playerScore}, CPU: ${cpuScore}`);
+        }
+      } else {
+        newGamePhase = 'playing'; // Return to the normal playing phase
+      }
+
+      return {
+        ...prevState,
+        playerHand: newPlayerHand,
+        currentTurn: allPlayerCardsRevealed || allCpuCardsRevealed ? prevState.currentTurn : 'cpu',
+        gamePhase: newGamePhase,
+        roundScore: newRoundScore,
+        gameScore: newGameScore
+      };
+    });
+
+    toast.success("Card flipped!");
+    setTimeout(() => {
+      if (gameState.gamePhase === 'playing') {
+        cpuTurn();
+      }
+    }, 1000);
+  }, [gameState.currentTurn, gameState.gamePhase, gameState.playerHand.revealedCards, cpuTurn]);
 
   const newRound = useCallback(() => {
     if (gameState.gamePhase === 'game-finished') {
@@ -344,8 +498,11 @@ export const useGolfGame = () => {
     peekAtCard,
     drawFromDeck,
     drawFromDiscard,
+    lockCard,
     replaceCard,
     discardDrawnCard,
+    lockCardAfterDiscard,
+    flipCardDirectly,
     newRound
   };
 };

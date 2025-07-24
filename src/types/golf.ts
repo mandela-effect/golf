@@ -19,7 +19,7 @@ export interface GameState {
   deck: Card[];
   discardPile: Card[];
   currentTurn: 'player' | 'cpu';
-  gamePhase: 'initial' | 'peek' | 'playing' | 'round-finished' | 'game-finished';
+  gamePhase: 'initial' | 'peek' | 'playing' | 'round-finished' | 'game-finished' | 'flip-after-discard';
   roundScore: { player: number; cpu: number };
   gameScore: { player: number; cpu: number };
   peeksRemaining: number;  // How many cards player can still peek at
