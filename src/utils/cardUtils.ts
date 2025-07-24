@@ -56,7 +56,6 @@ export const calculateHandScore = (cards: (Card | null)[]): number => {
   // Calculate score with pair cancellation
   Object.entries(rankCounts).forEach(([rank, count]) => {
     const value = getCardValue(rank as Rank);
-    const pairs = Math.floor(count / 2);
     const remaining = count % 2;
     
     // Pairs cancel out (score 0), count remaining cards
@@ -74,6 +73,16 @@ export const getSuitSymbol = (suit: Suit): string => {
     case 'spades': return '♠';
   }
 };
+
+export const checkFourOfAKind = (cards: (Card | null)[]): boolean => {
+  if (cards.some(card => card === null)) {
+    return false; // Invalid hand
+  }
+  
+  const validCards = cards.filter(card => card !== null) as Card[];
+  
+  return validCards.every(card => card.rank === validCards[0].rank);
+}
 
 export const getSuitColor = (suit: Suit): string => {
   return suit === 'hearts' || suit === 'diamonds' ? 'text-red-600' : 'text-black';

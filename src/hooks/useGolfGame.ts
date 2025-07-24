@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { GameState, Card } from '@/types/golf';
-import { createDeck, calculateHandScore } from '@/utils/cardUtils';
+import { createDeck, calculateHandScore, checkFourOfAKind } from '@/utils/cardUtils';
 import { toast } from 'sonner';
 
 const createInitialState = (): GameState => {
@@ -162,8 +162,8 @@ export const useGolfGame = () => {
 
         newRoundScore = { player: playerScore, cpu: cpuScore };
         newGameScore = {
-          player: prevState.gameScore.player + playerScore,
-          cpu: prevState.gameScore.cpu + cpuScore
+          player: checkFourOfAKind(newPlayerHand.cards) ? 0 : prevState.gameScore.player + playerScore,
+          cpu: checkFourOfAKind(prevState.cpuHand.cards) ? 0 : prevState.gameScore.cpu + cpuScore
         };
 
         // Check if game is finished

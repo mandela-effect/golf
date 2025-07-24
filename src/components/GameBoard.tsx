@@ -1,6 +1,5 @@
 import { GameState } from '@/types/golf';
 import { PlayingCard, DeckCard } from './PlayingCard';
-import { calculateHandScore } from '@/utils/cardUtils';
 import { cn } from '@/lib/utils';
 
 interface GameBoardProps {
@@ -24,9 +23,6 @@ export const GameBoard = ({
   onConfirmCard,
   onDiscardDrawnCard
 }: GameBoardProps) => {
-  const playerScore = calculateHandScore(gameState.playerHand.cards);
-  const cpuScore = calculateHandScore(gameState.cpuHand.cards);
-  
   const isPlayerTurn = gameState.currentTurn === 'player';
   const topDiscardCard = gameState.discardPile[gameState.discardPile.length - 1];
   const isPeekPhase = gameState.gamePhase === 'peek';
