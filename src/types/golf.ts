@@ -9,7 +9,8 @@ export interface Card {
 
 export interface PlayerHand {
   cards: (Card | null)[];
-  lockedCards: boolean[];
+  revealedCards: boolean[];  // Cards that are face up and locked
+  peekedCards: boolean[];    // Cards that have been peeked at (for initial peek phase)
 }
 
 export interface GameState {
@@ -18,9 +19,10 @@ export interface GameState {
   deck: Card[];
   discardPile: Card[];
   currentTurn: 'player' | 'cpu';
-  gamePhase: 'initial' | 'playing' | 'finished';
+  gamePhase: 'initial' | 'peek' | 'playing' | 'round-finished' | 'game-finished';
   roundScore: { player: number; cpu: number };
   gameScore: { player: number; cpu: number };
+  peeksRemaining: number;  // How many cards player can still peek at
 }
 
 export type GameAction = 

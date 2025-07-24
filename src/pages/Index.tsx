@@ -8,6 +8,7 @@ const Index = () => {
     gameState,
     drawnCard,
     dealInitialCards,
+    peekAtCard,
     drawFromDeck,
     drawFromDiscard,
     replaceCard,
@@ -31,6 +32,7 @@ const Index = () => {
     <div className="min-h-screen bg-felt-green">
       <GameBoard
         gameState={gameState}
+        onPeekCard={peekAtCard}
         onCardClick={handleCardClick}
         onDeckClick={drawFromDeck}
         onDiscardClick={drawFromDiscard}
@@ -38,12 +40,14 @@ const Index = () => {
         onConfirmCard={() => {}}
         onDiscardDrawnCard={discardDrawnCard}
       />
-      
       {/* Game Controls */}
       <div className="fixed bottom-4 right-4 flex gap-2">
-        <Button onClick={newRound} variant="secondary">
-          New Round
-        </Button>
+        <button
+          onClick={newRound}
+          className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90"
+        >
+          {gameState.gamePhase === 'game-finished' ? 'New Game' : 'New Round'}
+        </button>
       </div>
     </div>
   );
