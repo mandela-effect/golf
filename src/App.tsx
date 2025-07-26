@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NotFound from "./pages/NotFound";
-import Index from "./pages/Index";
+import Menu from "./pages/Menu";
+import SinglePlayer from "./pages/SinglePlayer";
+import Multiplayer from "./pages/Multiplayer";
 
 const queryClient = new QueryClient();
 
@@ -15,7 +17,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<Menu />} />
+          <Route path="/singleplayer" element={<SinglePlayer />} />
+          <Route path="/multiplayer/:roomCode" element={<Multiplayer />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
