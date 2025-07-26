@@ -245,14 +245,26 @@ const handleGameAction = (room, playerId, action) => {
           const oldCard = playerHand.cards[action.position];
           playerHand.cards[action.position] = gameState.drawnCard;
           playerHand.revealedCards[action.position] = true;
-          
           if (oldCard) {
             gameState.discardPile.push(oldCard);
           }
-          
           gameState.drawnCard = null;
-          gameState.currentTurn = playerId === 'player1' ? 'player2' : 'player1';
-          
+
+          // Only switch turn if opponent still has unrevealed cards
+          const opponentId = playerId === 'player1' ? 'player2' : 'player1';
+          const opponentHand = gameState[`${opponentId}Hand`];
+          const allPlayerCardsRevealed = playerHand.revealedCards.every(r => r);
+          const allOpponentCardsRevealed = opponentHand.revealedCards.every(r => r);
+
+          if (allPlayerCardsRevealed && !allOpponentCardsRevealed) {
+            // Stay on opponent's turn so they can finish
+            gameState.currentTurn = opponentId;
+          } else if (!allPlayerCardsRevealed && !allOpponentCardsRevealed) {
+            // Normal turn switch
+            gameState.currentTurn = opponentId;
+          }
+          // If both are revealed, checkRoundEnd will handle phase
+
           checkRoundEnd(gameState);
         }
       }
@@ -272,8 +284,19 @@ const handleGameAction = (room, playerId, action) => {
         if (!playerHand.revealedCards[action.position]) {
           playerHand.revealedCards[action.position] = true;
           gameState.gamePhase = 'playing';
-          gameState.currentTurn = playerId === 'player1' ? 'player2' : 'player1';
-          
+
+          const opponentId = playerId === 'player1' ? 'player2' : 'player1';
+          const opponentHand = gameState[`${opponentId}Hand`];
+          const allPlayerCardsRevealed = playerHand.revealedCards.every(r => r);
+          const allOpponentCardsRevealed = opponentHand.revealedCards.every(r => r);
+
+          if (allPlayerCardsRevealed && !allOpponentCardsRevealed) {
+            gameState.currentTurn = opponentId;
+          } else if (!allPlayerCardsRevealed && !allOpponentCardsRevealed) {
+            gameState.currentTurn = opponentId;
+          }
+          // If both are revealed, checkRoundEnd will handle phase
+
           checkRoundEnd(gameState);
         }
       }
@@ -284,8 +307,19 @@ const handleGameAction = (room, playerId, action) => {
         const playerHand = gameState[`${playerId}Hand`];
         if (!playerHand.revealedCards[action.position]) {
           playerHand.revealedCards[action.position] = true;
-          gameState.currentTurn = playerId === 'player1' ? 'player2' : 'player1';
-          
+
+          const opponentId = playerId === 'player1' ? 'player2' : 'player1';
+          const opponentHand = gameState[`${opponentId}Hand`];
+          const allPlayerCardsRevealed = playerHand.revealedCards.every(r => r);
+          const allOpponentCardsRevealed = opponentHand.revealedCards.every(r => r);
+
+          if (allPlayerCardsRevealed && !allOpponentCardsRevealed) {
+            gameState.currentTurn = opponentId;
+          } else if (!allPlayerCardsRevealed && !allOpponentCardsRevealed) {
+            gameState.currentTurn = opponentId;
+          }
+          // If both are revealed, checkRoundEnd will handle phase
+
           checkRoundEnd(gameState);
         }
       }
@@ -327,8 +361,9 @@ const handleGameAction = (room, playerId, action) => {
 const checkRoundEnd = (gameState) => {
   const allPlayer1CardsRevealed = gameState.player1Hand.revealedCards.every(r => r);
   const allPlayer2CardsRevealed = gameState.player2Hand.revealedCards.every(r => r);
-  
-  if (allPlayer1CardsRevealed || allPlayer2CardsRevealed) {
+
+  // Only end round if BOTH players have revealed all cards
+  if (allPlayer1CardsRevealed && allPlayer2CardsRevealed) {
     gameState.gamePhase = 'round-finished';
     
     // Calculate scores (simplified - you may want to import your scoring logic)

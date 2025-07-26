@@ -121,18 +121,35 @@ export const useMultiplayerGame = (roomCode: string) => {
     });
   }, [sendMessage]);
 
-  const peekAtCard = useCallback((position: number) => {
+  // Add sleep utility
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const peekAtCard = useCallback(async (position: number) => {
     if (!gameState || gameState.gamePhase !== 'peek' || gameState.peeksRemaining <= 0) return;
     if (gameState.currentTurn !== gameState.playerId) return;
     
     const playerHand = gameState.playerId === 'player1' ? gameState.player1Hand : gameState.player2Hand;
     if (playerHand.peekedCards[position]) return;
 
+    // If this is the second peek, delay before sending to server
+    if (gameState.peeksRemaining === 1) {
+      // Locally update peekedCards for immediate feedback
+      setGameState(prev => prev ? {
+        ...prev,
+        [gameState.playerId === 'player1' ? 'player1Hand' : 'player2Hand']: {
+          ...playerHand,
+          peekedCards: playerHand.peekedCards.map((peeked, idx) => idx === position ? true : peeked)
+        },
+        peeksRemaining: 0
+      } : prev);
+      await sleep(2000);
+    }
+
     sendMessage({
       type: 'peek-card',
       position
     });
-  }, [gameState, sendMessage]);
+  }, [gameState, sendMessage, setGameState]);
 
   const drawFromDeck = useCallback(() => {
     if (!gameState || gameState.gamePhase !== 'playing') return;
