@@ -107,13 +107,13 @@ const Menu = () => {
                     <Input 
                       value={`${window.location.origin}/multiplayer/${shareableCode}`}
                       readOnly
-                      className="text-xs"
+                      className="text-xs text-white"
                     />
                     <Button
                       onClick={copyToClipboard}
                       variant="outline"
                       size="sm"
-                      className="shrink-0"
+                      className="shrink-0 text-white"
                     >
                       {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
@@ -135,6 +135,7 @@ const Menu = () => {
                   <Button 
                     onClick={joinMultiplayerRoom}
                     variant="outline"
+                    className="text-white"
                   >
                     Join
                   </Button>
@@ -147,9 +148,9 @@ const Menu = () => {
         {/* Rules Summary */}
         <Card className="bg-muted/50">
           <CardHeader>
-            <CardTitle className="text-center">Quick Rules</CardTitle>
+            <CardTitle className="text-center text-white">Quick Rules</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm space-y-2">
+          <CardContent className="text-sm text-white space-y-2">
             <p>• Get your 4 cards to total exactly 0 points</p>
             <p>• Peek at 2 cards to start, then take turns drawing and replacing</p>
             <p>• Jacks & 2s = 0 points, Aces = 11, Face cards = 10</p>
