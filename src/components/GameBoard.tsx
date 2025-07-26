@@ -75,8 +75,8 @@ export const GameBoard = ({
         </div>
       </div>
 
-      {/* Center Area - Deck and Discard (only show during playing phase) */}
-      {isPlayingPhase && (
+      {/* Center Area - Deck and Discard (show during playing and flip phases) */}
+      {(isPlayingPhase || isFlipAfterDiscardPhase) && (
         <div className="flex justify-center gap-8 mb-8">
           <div className="text-center">
             <div className="text-sm text-muted-foreground mb-2">Deck</div>
