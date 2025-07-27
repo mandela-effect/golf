@@ -51,7 +51,7 @@ const SinglePlayer = () => {
         onDiscardDrawnCard={discardDrawnCard}
       />
       {/* Game Controls */}
-      <div className="fixed top-4 right-4 flex gap-2">
+      <div className="fixed top-4 right-4 flex flex-col md:flex-row gap-2">
         <button
           onClick={() => navigate('/')}
           className="px-4 py-2 bg-muted text-muted-foreground rounded hover:bg-muted/90 flex items-center gap-2"
