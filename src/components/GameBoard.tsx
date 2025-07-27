@@ -63,7 +63,7 @@ export const GameBoard = ({
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-foreground">CPU</h2>
         </div>
-        <div className="p-4 bg-cpu-area/10 rounded-lg border border-cpu-area/30">
+        <div className="p-4 flex bg-cpu-area/10 rounded-lg border border-cpu-area/30">
           <div className="grid grid-cols-4 md:grid-cols-2 gap-4 justify-items-center max-w-xs md:max-w-sm mx-auto">
             {gameState.cpuHand.cards.map((card, index) => (
               <PlayingCard
@@ -130,7 +130,7 @@ export const GameBoard = ({
           <h2 className="text-xl font-semibold text-foreground">Player</h2>
         </div>
         <div className={cn(
-          "p-4 rounded-lg border",
+          "flex p-4 rounded-lg border",
           "bg-player-area/10 border-player-area/30",
           isPlayerTurn && isPlayingPhase && "ring-2 ring-player-area/50",
           isPeekPhase && "ring-2 ring-accent/50",
