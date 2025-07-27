@@ -47,6 +47,7 @@ const Index = () => {
         drawnCard={drawnCard}
         onConfirmCard={() => {}}
         onDiscardDrawnCard={discardDrawnCard}
+        onNewRound={newRound}
       />
       {/* Game Controls */}
       <div className="fixed top-4 right-4 flex gap-2">
