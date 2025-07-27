@@ -129,7 +129,7 @@ const Menu = () => {
                     placeholder="Enter room code"
                     value={roomCode}
                     onChange={(e) => setRoomCode(e.target.value)}
-                    className="uppercase"
+                    className="uppercase text-white"
                     maxLength={6}
                   />
                   <Button 

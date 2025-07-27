@@ -4,7 +4,7 @@ import { createDeck, calculateHandScore, checkFourOfAKind } from '@/utils/cardUt
 import { toast } from 'sonner';
 
 // WebSocket server URL - you'll need to replace this with your server URL
-const WS_URL = 'ws://localhost:3001';
+const WS_URL = `ws://${location.hostname}:3000`;
 
 interface MultiplayerGameState extends Omit<GameState, 'currentTurn' | 'cpuHand' | 'playerHand'> {
   currentTurn: 'player1' | 'player2';
